@@ -109,3 +109,5 @@ staticfiles/*
 /docs/
 
 *.pyc
+templates/ui/index.html
+django_vue_generator/ui/static/ui/
