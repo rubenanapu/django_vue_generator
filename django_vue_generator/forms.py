@@ -5,7 +5,7 @@ from django.urls import get_resolver
 from rest_framework import serializers
 from rest_framework.utils.field_mapping import ClassLookupDict
 
-from django_vue_generator.utils import vuetify
+from django_vue_generator.utils import vuetify, UI_DESTINATION
 from django_vue_generator.vue import Vue, js_func, py_to_js, js_str
 
 default_style = ClassLookupDict(
@@ -68,7 +68,7 @@ class VueForm(Vue):
         self.model_name = self.serializer.Meta.model._meta.model_name
         self.pk_name = self.serializer.Meta.model._meta.pk.name
         self.component_name = f"{self.model_name.title()}{self.postfix}"
-        self.filename = f"frontend/src/components/{self.component_name}.vue"
+        self.filename = f"{UI_DESTINATION}/src/components/{self.component_name}.vue"
         self.fields = self.serializer().fields.items()
 
     def template(self):

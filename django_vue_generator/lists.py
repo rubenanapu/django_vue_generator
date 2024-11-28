@@ -1,6 +1,7 @@
 from django.urls import get_resolver
 from rest_framework import serializers, pagination
 from django_vue_generator.vue import js_func, js_str, Vue
+from django_vue_generator.utils import UI_DESTINATION
 
 
 class ListGenerator(Vue):
@@ -33,7 +34,7 @@ class ListGenerator(Vue):
         self.model_name = self.serializer.Meta.model._meta.model_name
         self.pk_name = self.serializer.Meta.model._meta.pk.name
         self.component_name = f"{self.model_name.title()}{self.postfix}"
-        self.filename = f"frontend/src/components/{self.component_name}.vue"
+        self.filename = f"{UI_DESTINATION}/src/components/{self.component_name}.vue"
         self.fields = self.serializer().fields.items()
 
     def template(self):
@@ -59,6 +60,11 @@ class ListGenerator(Vue):
         yield "</div>"
 
     def pagination(self):
+        if not self.viewset.pagination_class:
+            # FIXME: Check the implications of this.
+            # Added to fix 'issubclass() arg 1 must be a class'
+            return
+
         if issubclass(self.viewset.pagination_class, pagination.PageNumberPagination):
             yield f'<slot name="pagination" :count="count" :page="page" :page_size="page_size">'
             yield '<select v-model="page">'
@@ -93,6 +99,11 @@ class ListGenerator(Vue):
 
     @property
     def data(self):
+        if not self.viewset.pagination_class:
+            # FIXME: Check the implications of this.
+            # Added to fix 'issubclass() arg 1 must be a class'
+            return
+
         yield "objects", []
         yield "count", 0
         if issubclass(self.viewset.pagination_class, pagination.PageNumberPagination):

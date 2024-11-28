@@ -1,7 +1,11 @@
 from contextlib import contextmanager
 from subprocess import Popen, PIPE
+from django.conf import settings
 import os
 
+UI = 'ui'
+UI_SRC = os.path.join(os.path.dirname(__file__), UI)
+UI_DESTINATION = os.path.join(os.path.dirname(settings.BASE_DIR), UI)
 
 def vuetify(src):
     try:

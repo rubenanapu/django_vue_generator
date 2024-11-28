@@ -46,6 +46,18 @@ INSTALLED_APPS = [
     'app',
 ]
 
+try:
+    # ------------------------------------------------------------------------
+    # If './manage.py start_frontend' was called, the 'ui' app already exists.
+    # If that is the case, add it to INSTALLED_APPS
+    # ------------------------------------------------------------------------
+    import ui as unset_me
+    del unset_me
+
+    INSTALLED_APPS += ['ui']
+except Exception as e:
+    pass
+
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
