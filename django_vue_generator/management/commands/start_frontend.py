@@ -1,4 +1,4 @@
-import os
+from os import path
 
 from django.core.management.base import BaseCommand
 from django.core import management
@@ -13,6 +13,9 @@ from django_vue_generator.utils import (
     replace_in_file,
     overwrite,
     set_yarn_path,
+    UI,
+    UI_SRC,
+    UI_DESTINATION
 )
 from django_vue_generator.forms import VueForm
 
@@ -41,13 +44,6 @@ ESLINT_CONFIG = """{
     }
 }"""
 
-URLS = """from django.urls import path, include
-from django.views.generic import TemplateView
-
-urlpatterns = [
-    path('', TemplateView.as_view(template_name='frontend/index.html'), name='frontend-index'),
-]
-"""
 
 WEBPACK_CONFIG = """import webpack from 'webpack';
 
@@ -70,6 +66,9 @@ export default {
 
 def prepare(force=False, sudo=False):
     with cd_back():
+        # ----------------------------------
+        # Make sure yarn or vue is installed
+        # ----------------------------------
         if not run("which vue", True):
             if not run("which yarn", True):
                 fail(
@@ -80,52 +79,64 @@ def prepare(force=False, sudo=False):
                 Trying to install it via sudo npm i -g yarn"
                 )
                 fail("sudo npm i -g yarn")
-        if not run(r"yarn global list|grep vue\/cli", True):
-            if not sudo:
-                run("mkdir -p ~/.yarn-global")
-                run("yarn config set prefix ~/.yarn-global")
-            fail(f"{'sudo ' if sudo else ''}yarn global add @vue/cli")
-        if not run("yarn global list|grep vue-beautify", True):
-            if not sudo:
-                run("mkdir -p ~/.yarn-global")
-                run("yarn config set prefix ~/.yarn-global")
-            run(f"{'sudo ' if sudo else ''}yarn global add vue-beautify js-beautify")
-        set_yarn_path()
-        fail(f"vue create -m yarn -n -p default frontend{' -f' if force else ''}")
-    with cd_back("frontend/"):
-        run("yarn add vuelidate")
-        run("yarn add vue-resource")
-        replace_in_file(
-            "src/main.js",
-            "import Vue from 'vue'",
-            """\nimport Vuelidate from 'vuelidate'\nVue.use(Vuelidate)\n""",
-        )
-        replace_in_file(
-            "src/main.js",
-            "import Vue from 'vue'",
-            """\nimport VueResource from 'vue-resource'\nVue.use(VueResource)\n""",
-        )
-        replace_in_file(
-            "package.json",
-            "vue-cli-service build",
-            r""" && (rm -rf static/frontend/ 2>/dev/null || true) && sed 's/=\\//=\\/static\\/frontend\\//g' dist/index.html > templates/frontend/index.html && mv dist static/frontend""",
-        )
-        run("touch __init__.py")
-        run("mkdir -p templates/frontend")
-        run("mkdir -p static/frontend")
-        with overwrite(".eslintrc.json", force) as f:
-            f.write(ESLINT_CONFIG)
+
+        # if not run(r"yarn global list|grep vue\/cli", True):
+        #     if not sudo:
+        #         run("mkdir -p ~/.yarn-global")
+        #         run("yarn config set prefix ~/.yarn-global")
+        #     fail(f"{'sudo ' if sudo else ''}yarn global add @vue/cli")
+        # if not run("yarn global list|grep vue-beautify", True):
+        #     if not sudo:
+        #         run("mkdir -p ~/.yarn-global")
+        #         run("yarn config set prefix ~/.yarn-global")
+        #     run(f"{'sudo ' if sudo else ''}yarn global add vue-beautify js-beautify")
+        # set_yarn_path()
+        if path.exists(UI_DESTINATION):
+            print(
+                f'The "{UI_DESTINATION}" folder already exists.\n'
+                'Maybe you want to call one of the following options instead:\n'
+                '    ./manage.py generate_vue_form\n'
+                '    ./manage.py generate_vue_list'
+            )
+            exit(1)
+
+    # ------------------------------------------------------------------
+    # Copying the "ui" folder to the parent folder of the django project
+    # ------------------------------------------------------------------
+    print(f'Copying the "{UI}" folder to {UI_DESTINATION} ...')
+    fail(f'cp -r "{UI_SRC}" "{UI_DESTINATION}"')
+    print(f'Successfully copied the "{UI}" folder.')
+
+    with cd_back(UI_DESTINATION):
+        # run("yarn add vuelidate")
+        # run("yarn add vue-resource")
+        # replace_in_file(
+        #     "src/main.js",
+        #     "import Vue from 'vue'",
+        #     """\nimport Vuelidate from 'vuelidate'\nVue.use(Vuelidate)\n""",
+        # )
+        # replace_in_file(
+        #     "src/main.js",
+        #     "import Vue from 'vue'",
+        #     """\nimport VueResource from 'vue-resource'\nVue.use(VueResource)\n""",
+        # )
+        # replace_in_file(
+        #     "package.json",
+        #     "vue-cli-service build",
+        #     r""" && (rm -rf static/frontend/ 2>/dev/null || true) && sed 's/=\\//=\\/static\\/frontend\\//g' dist/index.html > templates/frontend/index.html && mv dist static/frontend""",
+        # )
+        # run("touch __init__.py")
+        # run("mkdir -p templates/frontend")
+        # run("mkdir -p static/frontend")
+        # with overwrite(".eslintrc.json", force) as f:
+        #     f.write(ESLINT_CONFIG)
         # with overwrite('webpack.config.js', force) as f:
         #     f.write(WEBPACK_CONFIG)
-        with overwrite("templates/index.html", force) as f:
-            f.write("""Please run ./manage.py build_frontend""")
-        with overwrite("urls.py", force) as f:
-            f.write(URLS)
-    print(
-        "don't forget to add 'frontend' to INSTALLED_APPS and include frontend.urls to your urlpatterns"
-    )
-    print("next you should run ./manage.py build_frontend")
-    print("or 'cd frontend && yarn build && cd .. && ./manage.py collectstatic'")
+        # with overwrite("templates/index.html", force) as f:
+        #     f.write("""Please run ./manage.py build_frontend""")
+        pass
+
+
 
 
 # def apis():
@@ -146,7 +157,7 @@ def prepare(force=False, sudo=False):
 #         except:
 #             pass
 class Command(BaseCommand):
-    help = "Generate vue frontend"
+    help = "Generate vue ui/frontend"
 
     def add_arguments(self, parser):
         parser.add_argument("--force", help="Overwrite everything", action="store_true")
@@ -167,3 +178,9 @@ class Command(BaseCommand):
                 generator = GeneratorClass(viewset)
                 with overwrite(generator.filename) as f:
                     f.write(generator.render())
+                    print(f'  File generated: {generator.filename}')
+
+
+        print(f"\nDon't forget to add '{UI}' to INSTALLED_APPS and include {UI}.urls to your urlpatterns")
+        print("Then you should run ./manage.py build_frontend")
+        print(f"or 'cd ../{UI} && yarn build && cd - && ./manage.py collectstatic'")
